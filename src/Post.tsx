@@ -2,6 +2,7 @@ import { useState } from "react";
 import { PostDetail } from "./PostDetail";
 import { Post } from "./queries/post/types";
 import api from "./services/api";
+import { useQuery } from "@tanstack/react-query";
 const maxPostPage = 10;
 
 async function fetchPosts() {
@@ -12,10 +13,11 @@ async function fetchPosts() {
 
 export function Posts() {
   const [currentPage, setCurrentPage] = useState<number>(0);
-  const [selectedPost, setSelectedPost] = useState<Post| null>(null);
+  const [selectedPost, setSelectedPost] = useState<Post | null>(null);
 
   // replace with useQuery
-  const data: Post[] = [];
+  const { data } = useQuery({ queryKey: ["posts"], queryFn: fetchPosts });
+  if (!data) return <p>Loading</p>;
 
   return (
     <>
