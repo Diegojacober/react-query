@@ -1,7 +1,10 @@
-import { useQuery, QueryFunctionContext } from "@tanstack/react-query";
+import {
+  useQuery,
+  QueryFunctionContext,
+  useMutation,
+} from "@tanstack/react-query";
 import { Post, Comment } from "./queries/post/types";
 import api from "./services/api";
-import { Context } from "react";
 
 async function fetchComments(ctx: QueryFunctionContext) {
   const [, postId] = ctx.queryKey;
@@ -10,15 +13,24 @@ async function fetchComments(ctx: QueryFunctionContext) {
   return data;
 }
 
-async function deletePost(ctx: QueryFunctionContext) {
-  const [, postId] = ctx.queryKey;
-  const { data } = await api.delete(`/posts/${postId}`);
+type DeletePostResponse = {
+  success: boolean;
+  message: string;
+  // Pode conter outros campos relevantes à sua aplicação
+};
 
-  return data;
+async function deletePost(postId: number): Promise<DeletePostResponse> {
+  try {
+    await api.delete(`/posts/${postId}`);
+    return { success: true, message: "Post deleted successfully." };
+  } catch (error) {
+    // Se houver algum erro durante a deleção, você pode tratá-lo aqui
+    console.error("Error deleting post:", error);
+    return { success: false, message: "Error deleting post." };
+  }
 }
 
-async function updatePost(ctx: QueryFunctionContext) {
-  const [, postId] = ctx.queryKey;
+async function updatePost(postId: number) {
   const { data } = await api.patch<Post>(`/posts/${postId}`, {
     title: "OOKKK",
   });
@@ -36,6 +48,13 @@ export function PostDetail({ post }: PostDetailProps) {
     queryFn: fetchComments,
     staleTime: 2000,
   });
+
+  const deleteMutation = useMutation({ mutationFn: deletePost });
+
+  const handleDeleteClick = async () => {
+    deleteMutation.mutate(post.id);
+  };
+
   if (isLoading) return <h3>Loading...</h3>;
 
   if (isError)
@@ -48,7 +67,17 @@ export function PostDetail({ post }: PostDetailProps) {
   return (
     <>
       <h3 style={{ color: "blue" }}>{post.title}</h3>
-      <button>Delete</button> <button>Update title</button>
+      <button onClick={handleDeleteClick}>Delete</button>
+      {deleteMutation.isError && (
+        <p style={{ color: "red" }}>Error deleting the post</p>
+      )}
+      {deleteMutation.isPending && (
+        <p style={{ color: "purple" }}>Deleting the post</p>
+      )}
+      {deleteMutation.isSuccess && (
+        <p style={{ color: "green" }}>Post has (not) been deleted</p>
+      )}
+      <button>Update title</button>
       <p>{post.body}</p>
       <h4>Comments</h4>
       {data?.map((comment) => (
