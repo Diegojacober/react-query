@@ -32,7 +32,7 @@ async function deletePost(postId: number): Promise<DeletePostResponse> {
 
 async function updatePost(postId: number) {
   const { data } = await api.patch<Post>(`/posts/${postId}`, {
-    title: "OOKKK",
+    title: "NEW TITLE",
   });
 
   return data;
@@ -54,6 +54,14 @@ export function PostDetail({ post }: PostDetailProps) {
   const handleDeleteClick = async () => {
     deleteMutation.mutate(post.id);
   };
+
+
+  const patchMutation = useMutation({mutationFn: updatePost})
+
+  const handleUpdatePost = async () => {
+    patchMutation.mutate(post.id)
+  }
+
 
   if (isLoading) return <h3>Loading...</h3>;
 
@@ -77,7 +85,13 @@ export function PostDetail({ post }: PostDetailProps) {
       {deleteMutation.isSuccess && (
         <p style={{ color: "green" }}>Post has (not) been deleted</p>
       )}
-      <button>Update title</button>
+      <button onClick={handleUpdatePost}>Update title</button>
+      {patchMutation.isPending && (
+        <p style={{ color: "purple" }}>Updating the post</p>
+      )}
+      {patchMutation.isSuccess && (
+        <p style={{ color: "green" }}>Post has (not) been updated</p>
+      )}
       <p>{post.body}</p>
       <h4>Comments</h4>
       {data?.map((comment) => (
