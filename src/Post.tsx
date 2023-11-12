@@ -24,7 +24,7 @@ export function Posts() {
   return (
     <>
       <ul>
-        {data.map((post) => (
+        {data?.map((post) => (
           <li
             key={post.id}
             className="post-title"
