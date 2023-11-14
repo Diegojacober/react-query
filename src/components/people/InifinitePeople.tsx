@@ -3,62 +3,52 @@ import { useInfiniteQuery } from "@tanstack/react-query";
 import { Person } from "./Person";
 import api from "../../services/api";
 
-const fetchPosts = async ({ pageParam = 1 }) => {
-  const { data } = await api.get<PersonProps>(`/people/`, {
-    params: { page: pageParam },
-  });
-  return { data };
+
+interface ApiResponse {
+  results: PersonProps[];
+  next: string | null;
+}
+
+const fetchPeople = async ({ pageParam = `/people/?page=1` }): Promise<ApiResponse> => {
+  const response = await api.get(`${pageParam}`);
+  return response.data;
 };
 
-interface Page {
-  data: {
-    results: PersonProps[];
-    nextCursor?: number;
-    previousCursor?: number;
-  };
-}
 export function InfinitePeople() {
   const {
-    data, // data accumulated across all pages: InfiniteQueryData<Page>
-    error, // any Error that has occurred
-    fetchNextPage, // Function to fetch the next page
-    fetchPreviousPage,
-    hasNextPage, // Boolean that indicates if the next page is available
-    hasPreviousPage,
-    isError, // If an Error has occurred
-    isLoading, // If the query function is running
+    data,
+    fetchNextPage,
+    hasNextPage,
     isFetching,
     isFetchingNextPage,
-    isFetchingPreviousPage,
-    status, // 'error' | 'loading' | 'success' - indicates state of this hook
-  } = useInfiniteQuery<Page, Error>({
-    queryKey: ["data"],
-    queryFn: fetchPosts,
-    getLastPageParam: (firstPage: Page) => firstPage.previousCursor,
-    getNextPageParam: (lastPage: Page) => lastPage.next || undefined,
+    isError,
+    error,
+  } = useInfiniteQuery<ApiResponse, Error>({
+    queryKey: ["people"],
+    queryFn: fetchPeople,
+    getNextPageParam: (lastPage) => lastPage.next,
   });
 
-  if (isLoading) return <div className="loading">Loading...</div>;
+  if (isError) {
+    return <div>Error: {error?.message}</div>;
+  }
 
-  if (isError) return <div className="error">Error! {error.message}</div>;
-  // TODO: get data for InfiniteScroll via React Query
+  if (!data) {
+    return <div>Loading...</div>;
+  }
+
+  const people = data.pages.flatMap((page) => page.results);
+
   return (
-    <>
-      {isFetching && <div className="loading">Loading...</div>}
-      <InfiniteScroll loadMore={fetchNextPage} hasMore={hasNextPage}>
-        {data?.pages.map((pageData) => {
-          return pageData.data.results.map((person) => {
-            return (
-              <Person
-                key={person.name}
-                name={person.name}
-                hairColor={person.hair_color}
-                eyeColor={person.eye_color}
-              />
-            );
-          });
-        })}
-      </InfiniteScroll>
-    </>
+    <InfiniteScroll loadMore={() => fetchNextPage()} hasMore={hasNextPage}>
+      <div>
+        {people.map((person) => (
+          <Person key={person.name} name={person.name} eyeColor={person.eye_color} hairColor={person.hair_color} />
+        ))}
+
+        {isFetching && <div>Fetching...</div>}
+        {isFetchingNextPage && <div>Loading more...</div>}
+      </div>
+    </InfiniteScroll>
   );
 }
